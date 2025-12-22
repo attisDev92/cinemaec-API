@@ -11,6 +11,16 @@ export enum UserRole {
   USER = 'user',
 }
 
+export enum PermissionEnum {
+  ADMIN_SPACES = 'admin_spaces',
+  ADMIN_MOVIES = 'admin_movies',
+  APPROVE_MOVIES_REQUEST = 'approve_movies_request',
+  ADMIN_USERS = 'admin_users',
+  ASSIGN_ROLES = 'assign_roles',
+  VIEW_REPORTS = 'view_reports',
+  EXPORT_DATA = 'export_data',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
@@ -50,6 +60,13 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true })
   lastLogin: Date | null
+
+  @Column({
+    type: 'text',
+    array: true,
+    nullable: true,
+  })
+  permissions: string[] | null
 
   @CreateDateColumn()
   createdAt: Date

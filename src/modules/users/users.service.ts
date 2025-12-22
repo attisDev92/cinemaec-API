@@ -3,15 +3,18 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
+  NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import * as bcrypt from 'bcrypt'
 import { randomBytes } from 'crypto'
 import { JwtService } from '@nestjs/jwt'
-import { User } from './entities/user.entity'
+import { User, UserRole } from './entities/user.entity'
 import { RegisterDto } from './dto/register.dto'
 import { LoginDto } from './dto/login.dto'
+import { UpdateUserPermissionsDto } from './dto/update-user-permissions.dto'
 import { EmailsService } from '../emails/emails.service'
 import { Profile } from '../profiles/entities/profile.entity'
 
@@ -332,5 +335,92 @@ export class UsersService {
       message:
         'Contraseña restablecida exitosamente. Ya puedes iniciar sesión.',
     }
+  }
+
+  /**
+   * Actualizar permisos de un usuario (solo admins)
+   */
+  async updateUserPermissions(
+    userId: number,
+    adminId: number,
+    updateUserPermissionsDto: UpdateUserPermissionsDto,
+  ): Promise<User> {
+    // Verificar que el solicitante es admin
+    const admin = await this.usersRepository.findOne({
+      where: { id: adminId },
+    })
+
+    if (!admin || admin.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'No tienes permisos para realizar esta acción',
+      )
+    }
+
+    // Obtener el usuario a actualizar
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`)
+    }
+
+    // Validar que solo admins puedan tener permisos
+    if (user.role === UserRole.ADMIN) {
+      // Admins deben tener permisos especificados
+      if (
+        !updateUserPermissionsDto.permissions ||
+        updateUserPermissionsDto.permissions.length === 0
+      ) {
+        throw new BadRequestException(
+          'Los administradores deben tener al menos un permiso asignado',
+        )
+      }
+      user.permissions = updateUserPermissionsDto.permissions
+    } else {
+      // Usuarios normales no deben tener permisos
+      user.permissions = null
+    }
+
+    return await this.usersRepository.save(user)
+  }
+
+  /**
+   * Obtener información de un usuario
+   */
+  async getUserInfo(userId: number, requesterId: number): Promise<any> {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+    })
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`)
+    }
+
+    const requester = await this.usersRepository.findOne({
+      where: { id: requesterId },
+    })
+
+    // Información pública
+    const userInfo = {
+      id: user.id,
+      email: user.email,
+      cedula: user.cedula,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    }
+
+    // Si es admin o el mismo usuario, agregar información adicional
+    if (requester?.role === UserRole.ADMIN || userId === requesterId) {
+      return {
+        ...userInfo,
+        permissions: user.permissions,
+        lastLogin: user.lastLogin,
+        profileId: user.profileId,
+      }
+    }
+
+    return userInfo
   }
 }

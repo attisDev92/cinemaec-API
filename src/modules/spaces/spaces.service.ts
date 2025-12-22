@@ -11,13 +11,18 @@ import { CreateSpaceDto } from './dto/create-space.dto'
 import { UpdateSpaceDto } from './dto/update-space.dto'
 import { QuerySpacesDto } from './dto/query-spaces.dto'
 import { AssetsService } from '../assets/assets.service'
+import { NotificationsService } from '../notifications/notifications.service'
+import { User, UserRole, PermissionEnum } from '../users/entities/user.entity'
 
 @Injectable()
 export class SpacesService {
   constructor(
     @InjectRepository(Space)
     private spacesRepository: Repository<Space>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
     private assetsService: AssetsService,
+    private notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -58,7 +63,68 @@ export class SpacesService {
       console.error('Error actualizando ownerId de assets:', error)
     }
 
+    // Notificar al usuario que creó el espacio
+    await this.notifyUserAboutSpaceCreation(userId, savedSpace)
+
+    // Notificar a todos los admins con permiso admin_spaces
+    await this.notifyAdminsAboutNewSpace(savedSpace)
+
     return savedSpace
+  }
+
+  /**
+   * Notificar al usuario sobre la creación exitosa del espacio
+   */
+  private async notifyUserAboutSpaceCreation(
+    userId: number,
+    space: Space,
+  ): Promise<void> {
+    try {
+      await this.notificationsService.create({
+        userId,
+        title: 'Espacio registrado exitosamente',
+        message: `Tu espacio "${space.name}" ha sido registrado. La información será revisada en un lapso máximo de 15 días.`,
+        type: 'success',
+        link: `/spaces/${space.id}`,
+        referenceType: 'space',
+        referenceId: space.id,
+      })
+    } catch (error) {
+      console.error('Error enviando notificación al usuario:', error)
+    }
+  }
+
+  /**
+   * Notificar a admins con permiso admin_spaces sobre nuevo espacio
+   */
+  private async notifyAdminsAboutNewSpace(space: Space): Promise<void> {
+    try {
+      // Buscar todos los usuarios admin con el permiso admin_spaces
+      const admins = await this.usersRepository
+        .createQueryBuilder('user')
+        .where('user.role = :role', { role: UserRole.ADMIN })
+        .andWhere(':permission = ANY(user.permissions)', {
+          permission: PermissionEnum.ADMIN_SPACES,
+        })
+        .getMany()
+
+      // Crear notificación para cada admin
+      const notificationPromises = admins.map((admin) =>
+        this.notificationsService.create({
+          userId: admin.id,
+          title: 'Nuevo espacio registrado',
+          message: `Se ha registrado un nuevo espacio: "${space.name}" en ${space.city}, ${space.province}`,
+          type: 'info',
+          link: `/spaces/${space.id}`,
+          referenceType: 'space',
+          referenceId: space.id,
+        }),
+      )
+
+      await Promise.all(notificationPromises)
+    } catch (error) {
+      console.error('Error enviando notificaciones a admins:', error)
+    }
   }
 
   /**

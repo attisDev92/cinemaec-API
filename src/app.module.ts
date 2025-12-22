@@ -9,6 +9,7 @@ import { ProfilesModule } from './modules/profiles/profiles.module'
 import { AssetsModule } from './modules/assets/assets.module'
 import { SpacesModule } from './modules/spaces/spaces.module'
 import { ContractsModule } from './modules/contracts/contracts.module'
+import { NotificationsModule } from './modules/notifications/notifications.module'
 
 import envConfig from './config/env.config'
 
@@ -41,6 +42,7 @@ import envConfig from './config/env.config'
     AssetsModule,
     SpacesModule,
     ContractsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

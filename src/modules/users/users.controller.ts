@@ -8,6 +8,8 @@ import {
   HttpStatus,
   UseGuards,
   Request,
+  Param,
+  ParseIntPipe,
 } from '@nestjs/common'
 import {
   ApiTags,
@@ -23,6 +25,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
 import { ForgotPasswordDto } from './dto/forgot-password.dto'
 import { ResetPasswordDto } from './dto/reset-password.dto'
+import { UpdateUserPermissionsDto } from './dto/update-user-permissions.dto'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 
 @ApiTags('users')
@@ -344,5 +347,61 @@ export class UsersController {
       resetPasswordDto.token,
       resetPasswordDto.newPassword,
     )
+  }
+
+  @Put(':id/permissions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Actualizar permisos de un usuario (Admin)',
+    description: 'Permite a un admin actualizar los permisos de otro usuario',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Permisos actualizados exitosamente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'No tienes permisos para realizar esta acción',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
+  async updateUserPermissions(
+    @Param('id', ParseIntPipe) userId: number,
+    @Request() req: any,
+    @Body() updateUserPermissionsDto: UpdateUserPermissionsDto,
+  ) {
+    const adminId = req.user.sub
+    return this.usersService.updateUserPermissions(
+      userId,
+      adminId,
+      updateUserPermissionsDto,
+    )
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener información de un usuario',
+    description:
+      'Obtiene la información pública de un usuario. Admins pueden ver información adicional.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario encontrado',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+  })
+  async getUser(
+    @Param('id', ParseIntPipe) userId: number,
+    @Request() req: any,
+  ) {
+    const requesterId = req.user.sub
+    return this.usersService.getUserInfo(userId, requesterId)
   }
 }
