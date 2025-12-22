@@ -1,0 +1,56 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm'
+
+export enum UserRole {
+  ADMIN = 'admin',
+  EDITOR = 'editor',
+  USER = 'user',
+}
+
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number
+
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: false })
+  email: string
+
+  @Column({ type: 'varchar', length: 20, unique: true, nullable: false })
+  cedula: string
+
+  @Column({ type: 'varchar', length: 255, nullable: false, select: false })
+  password: string
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+    nullable: false,
+  })
+  role: UserRole
+
+  @Column({ type: 'boolean', default: false })
+  isActive: boolean
+
+  @Column({ type: 'varchar', nullable: true })
+  emailVerificationToken: string | null
+
+  @Column({ type: 'varchar', nullable: true })
+  passwordResetToken: string | null
+
+  @Column({ type: 'timestamp', nullable: true })
+  passwordResetExpires: Date | null
+
+  @Column({ type: 'int', nullable: true })
+  profileId: number | null
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastLogin: Date | null
+
+  @CreateDateColumn()
+  createdAt: Date
+}

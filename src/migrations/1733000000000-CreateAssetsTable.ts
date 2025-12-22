@@ -1,0 +1,144 @@
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+  TableIndex,
+} from 'typeorm'
+
+export class CreateAssetsTable1733000000000 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    // Crear enum para document_type
+    await queryRunner.query(`
+      CREATE TYPE "asset_type_enum" AS ENUM ('image', 'video', 'document', 'logo', 'other')
+    `)
+
+    // Crear enum para owner_type
+    await queryRunner.query(`
+      CREATE TYPE "asset_owner_enum" AS ENUM (
+        'space_logo',
+        'space_photo',
+        'user_bc_photo',
+        'company_logo',
+        'company_photos',
+        'location_photos',
+        'movie_stills',
+        'movie_poster'
+      )
+    `)
+
+    // Crear tabla assets
+    await queryRunner.createTable(
+      new Table({
+        name: 'assets',
+        columns: [
+          {
+            name: 'id',
+            type: 'serial',
+            isPrimary: true,
+          },
+          {
+            name: 'user_id',
+            type: 'int',
+            isNullable: false,
+          },
+          {
+            name: 'document_type',
+            type: 'asset_type_enum',
+            isNullable: false,
+          },
+          {
+            name: 'owner_type',
+            type: 'asset_owner_enum',
+            isNullable: false,
+          },
+          {
+            name: 'owner_id',
+            type: 'int',
+            isNullable: true,
+          },
+          {
+            name: 'url',
+            type: 'text',
+            isNullable: false,
+          },
+          {
+            name: 'firebase_path',
+            type: 'text',
+            isNullable: true,
+          },
+          {
+            name: 'created_at',
+            type: 'timestamp',
+            default: 'now()',
+          },
+          {
+            name: 'updated_at',
+            type: 'timestamp',
+            default: 'now()',
+          },
+        ],
+      }),
+      true,
+    )
+
+    // Crear foreign key con users
+    await queryRunner.createForeignKey(
+      'assets',
+      new TableForeignKey({
+        columnNames: ['user_id'],
+        referencedTableName: 'users',
+        referencedColumnNames: ['id'],
+        onDelete: 'CASCADE',
+      }),
+    )
+
+    // Crear índices para optimizar queries
+    await queryRunner.createIndex(
+      'assets',
+      new TableIndex({
+        name: 'IDX_ASSETS_USER_ID',
+        columnNames: ['user_id'],
+      }),
+    )
+
+    await queryRunner.createIndex(
+      'assets',
+      new TableIndex({
+        name: 'IDX_ASSETS_OWNER_TYPE',
+        columnNames: ['owner_type'],
+      }),
+    )
+
+    await queryRunner.createIndex(
+      'assets',
+      new TableIndex({
+        name: 'IDX_ASSETS_OWNER_ID',
+        columnNames: ['owner_id'],
+      }),
+    )
+
+    await queryRunner.createIndex(
+      'assets',
+      new TableIndex({
+        name: 'IDX_ASSETS_OWNER',
+        columnNames: ['owner_type', 'owner_id'],
+      }),
+    )
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    // Eliminar índices
+    await queryRunner.dropIndex('assets', 'IDX_ASSETS_OWNER')
+    await queryRunner.dropIndex('assets', 'IDX_ASSETS_OWNER_ID')
+    await queryRunner.dropIndex('assets', 'IDX_ASSETS_OWNER_TYPE')
+    await queryRunner.dropIndex('assets', 'IDX_ASSETS_USER_ID')
+
+    // Eliminar tabla
+    await queryRunner.dropTable('assets')
+
+    // Eliminar enums
+    await queryRunner.query(`DROP TYPE "asset_owner_enum"`)
+    await queryRunner.query(`DROP TYPE "asset_type_enum"`)
+  }
+}
