@@ -288,6 +288,8 @@ export interface SpaceReview {
   decision: SpaceReviewDecisionEnum
   generalComment?: string | null
   issues?: ReviewIssue[] | null
+  resolved?: boolean
+  resolvedAt?: Date | null
   createdAt: Date
 }
 

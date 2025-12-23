@@ -445,6 +445,8 @@ export class SpacesService {
   ): Promise<Space> {
     const space = await this.findOne(id)
 
+    const wasPending = space.status === SpaceStatusEnum.PENDING
+
     // Verificar que el usuario sea el propietario
     if (space.userId !== userId) {
       throw new ForbiddenException(
@@ -457,6 +459,24 @@ export class SpacesService {
 
     // Cambiar estado a under_review para que el admin sepa que hay cambios
     space.status = SpaceStatusEnum.UNDER_REVIEW
+
+    // Si estaba pendiente por observaciones, marcamos la última revisión como resuelta
+    if (wasPending) {
+      const lastReview = await this.spaceReviewsRepository.findOne({
+        where: { spaceId: id },
+        order: { createdAt: 'DESC' },
+      })
+
+      if (
+        lastReview &&
+        lastReview.decision === SpaceReviewDecisionEnum.REQUEST_CHANGES &&
+        !lastReview.resolved
+      ) {
+        lastReview.resolved = true
+        lastReview.resolvedAt = new Date()
+        await this.spaceReviewsRepository.save(lastReview)
+      }
+    }
 
     return await this.spacesRepository.save(space)
   }

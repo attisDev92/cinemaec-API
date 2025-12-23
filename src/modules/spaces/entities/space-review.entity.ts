@@ -40,6 +40,12 @@ export class SpaceReview {
     severity?: 'low' | 'medium' | 'high'
   }> | null
 
+  @Column({ type: 'boolean', default: false })
+  resolved: boolean
+
+  @Column({ type: 'timestamp', nullable: true })
+  resolvedAt: Date | null
+
   @ManyToOne(() => Space, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'spaceId' })
   space: Space
