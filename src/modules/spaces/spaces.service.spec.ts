@@ -3,6 +3,10 @@ import { getRepositoryToken } from '@nestjs/typeorm'
 import { SpacesService } from './spaces.service'
 import { Space, SpaceTypeEnum, SpaceStatusEnum } from './entities/space.entity'
 import { NotFoundException, ForbiddenException } from '@nestjs/common'
+import { User } from '../users/entities/user.entity'
+import { SpaceReview } from './entities/space-review.entity'
+import { AssetsService } from '../assets/assets.service'
+import { NotificationsService } from '../notifications/notifications.service'
 
 describe('SpacesService', () => {
   let service: SpacesService
@@ -23,6 +27,31 @@ describe('SpacesService', () => {
     createQueryBuilder: jest.fn(() => mockQueryBuilder),
   }
 
+  const mockUserQueryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getMany: jest.fn().mockResolvedValue([]),
+  }
+
+  const mockUsersRepository = {
+    findOne: jest.fn(),
+    createQueryBuilder: jest.fn(() => mockUserQueryBuilder),
+  }
+
+  const mockSpaceReviewRepository = {
+    create: jest.fn(),
+    save: jest.fn(),
+    find: jest.fn(),
+  }
+
+  const mockAssetsService = {
+    updateMultipleAssetsOwner: jest.fn(),
+  }
+
+  const mockNotificationsService = {
+    create: jest.fn(),
+  }
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -30,6 +59,22 @@ describe('SpacesService', () => {
         {
           provide: getRepositoryToken(Space),
           useValue: mockSpacesRepository,
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: mockUsersRepository,
+        },
+        {
+          provide: getRepositoryToken(SpaceReview),
+          useValue: mockSpaceReviewRepository,
+        },
+        {
+          provide: AssetsService,
+          useValue: mockAssetsService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
         },
       ],
     }).compile()

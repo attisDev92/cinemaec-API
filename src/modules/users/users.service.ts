@@ -97,15 +97,18 @@ export class UsersService {
       role: string
       is_active: boolean
       has_profile: boolean
+      permissions: string[] | null
     }
   }> {
     const { email, password } = loginDto
 
-    // Buscar usuario por email (incluyendo el password)
-    const user = await this.usersRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'cedula', 'password', 'role', 'isActive'],
-    })
+    // Buscar usuario por email (incluyendo el password y permissions)
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.email = :email', { email })
+      .addSelect('user.password')
+      .addSelect('user.permissions')
+      .getOne()
 
     if (!user) {
       throw new UnauthorizedException('Credenciales incorrectas')
@@ -143,6 +146,9 @@ export class UsersService {
     }
     const accessToken = this.jwtService.sign(payload)
 
+    // Convertir permissions de string (comma-separated) a array si es necesario
+    const permissionsArray = user.permissions || []
+
     return {
       accessToken,
       user: {
@@ -152,6 +158,7 @@ export class UsersService {
         role: user.role,
         is_active: user.isActive,
         has_profile: hasProfile,
+        permissions: permissionsArray,
       },
     }
   }

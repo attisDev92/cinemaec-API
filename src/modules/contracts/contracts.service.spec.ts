@@ -3,6 +3,7 @@ import { ContractsService } from './contracts.service'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Contract, ContractTypeEnum } from './entities/contract.entity'
 import { NotFoundException, BadRequestException } from '@nestjs/common'
+import { SpacesService } from '../spaces/spaces.service'
 
 describe('ContractsService', () => {
   let service: ContractsService
@@ -18,6 +19,7 @@ describe('ContractsService', () => {
   const mockSpacesService = {
     findOne: jest.fn(),
     updateContractId: jest.fn(),
+    updateSpaceStatus: jest.fn(),
   }
 
   beforeEach(async () => {
@@ -29,7 +31,7 @@ describe('ContractsService', () => {
           useValue: mockRepository,
         },
         {
-          provide: 'SpacesService',
+          provide: SpacesService,
           useValue: mockSpacesService,
         },
       ],

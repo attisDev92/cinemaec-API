@@ -12,7 +12,13 @@ import { UpdateSpaceDto } from './dto/update-space.dto'
 import { QuerySpacesDto } from './dto/query-spaces.dto'
 import { AssetsService } from '../assets/assets.service'
 import { NotificationsService } from '../notifications/notifications.service'
+import { NotificationTypeEnum } from '../notifications/entities/notification.entity'
 import { User, UserRole, PermissionEnum } from '../users/entities/user.entity'
+import {
+  SpaceReview,
+  SpaceReviewDecisionEnum,
+} from './entities/space-review.entity'
+import { SubmitSpaceReviewDto } from './dto/submit-space-review.dto'
 
 @Injectable()
 export class SpacesService {
@@ -21,6 +27,8 @@ export class SpacesService {
     private spacesRepository: Repository<Space>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(SpaceReview)
+    private spaceReviewsRepository: Repository<SpaceReview>,
     private assetsService: AssetsService,
     private notificationsService: NotificationsService,
   ) {}
@@ -84,7 +92,7 @@ export class SpacesService {
         userId,
         title: 'Espacio registrado exitosamente',
         message: `Tu espacio "${space.name}" ha sido registrado. La información será revisada en un lapso máximo de 15 días.`,
-        type: 'success',
+        type: NotificationTypeEnum.SUCCESS,
         link: `/spaces/${space.id}`,
         referenceType: 'space',
         referenceId: space.id,
@@ -114,7 +122,7 @@ export class SpacesService {
           userId: admin.id,
           title: 'Nuevo espacio registrado',
           message: `Se ha registrado un nuevo espacio: "${space.name}" en ${space.city}, ${space.province}`,
-          type: 'info',
+          type: NotificationTypeEnum.INFO,
           link: `/spaces/${space.id}`,
           referenceType: 'space',
           referenceId: space.id,
@@ -125,6 +133,116 @@ export class SpacesService {
     } catch (error) {
       console.error('Error enviando notificaciones a admins:', error)
     }
+  }
+
+  /**
+   * Enviar revisión de un espacio (solo admins con permiso admin_spaces)
+   */
+  async submitReview(
+    spaceId: number,
+    reviewerUserId: number,
+    dto: SubmitSpaceReviewDto,
+  ): Promise<SpaceReview> {
+    const space = await this.findOne(spaceId)
+
+    const reviewer = await this.usersRepository.findOne({
+      where: { id: reviewerUserId },
+    })
+    if (!reviewer || reviewer.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Solo administradores pueden revisar espacios',
+      )
+    }
+    const hasPermission =
+      Array.isArray(reviewer.permissions) &&
+      reviewer.permissions.includes(PermissionEnum.ADMIN_SPACES)
+    if (!hasPermission) {
+      throw new ForbiddenException('No tienes permiso para revisar espacios')
+    }
+
+    const review = this.spaceReviewsRepository.create({
+      spaceId: space.id,
+      reviewerUserId,
+      decision: dto.decision,
+      generalComment: dto.generalComment ?? null,
+      issues: dto.issues ?? null,
+    })
+
+    const saved = await this.spaceReviewsRepository.save(review)
+
+    // Cambios de estado según decisión
+    if (dto.decision === SpaceReviewDecisionEnum.APPROVE) {
+      await this.updateSpaceStatus(space.id, 'verified')
+      await this.notificationsService.create({
+        userId: space.userId,
+        title: 'Espacio verificado',
+        message: `Tu espacio "${space.name}" ha sido verificado.`,
+        type: NotificationTypeEnum.SUCCESS,
+        link: `/spaces/${space.id}`,
+        referenceType: 'space',
+        referenceId: space.id,
+      })
+    } else if (dto.decision === SpaceReviewDecisionEnum.REQUEST_CHANGES) {
+      await this.updateSpaceStatus(space.id, 'under_review')
+      const issuesText = (dto.issues || [])
+        .map((i) => `• ${i.field}: ${i.comment}`)
+        .join('\n')
+      await this.notificationsService.create({
+        userId: space.userId,
+        title: 'Se requieren correcciones en tu espacio',
+        message: `Por favor corrige los siguientes puntos:\n${issuesText}`,
+        type: NotificationTypeEnum.WARNING,
+        link: `/spaces/${space.id}/edit`,
+        referenceType: 'space',
+        referenceId: space.id,
+      })
+    } else if (dto.decision === SpaceReviewDecisionEnum.REJECT) {
+      await this.updateSpaceStatus(space.id, 'rejected')
+      await this.notificationsService.create({
+        userId: space.userId,
+        title: 'Espacio rechazado',
+        message:
+          dto.generalComment ||
+          'Tu espacio ha sido rechazado. Revisa los requisitos.',
+        type: NotificationTypeEnum.ERROR,
+        link: `/spaces/${space.id}`,
+        referenceType: 'space',
+        referenceId: space.id,
+      })
+    }
+
+    return saved
+  }
+
+  /**
+   * Obtener el historial de revisiones de un espacio
+   */
+  async getReviewsBySpace(
+    spaceId: number,
+    requesterId: number,
+  ): Promise<SpaceReview[]> {
+    const space = await this.findOne(spaceId)
+
+    // Permitir al dueño ver sus revisiones, y admins con admin_spaces
+    const requester = await this.usersRepository.findOne({
+      where: { id: requesterId },
+    })
+    const isOwner = space.userId === requesterId
+    const isAdminWithPermission =
+      requester?.role === UserRole.ADMIN &&
+      Array.isArray(requester.permissions) &&
+      requester.permissions.includes(PermissionEnum.ADMIN_SPACES)
+
+    if (!isOwner && !isAdminWithPermission) {
+      throw new ForbiddenException(
+        'No tienes permisos para ver estas revisiones',
+      )
+    }
+
+    return this.spaceReviewsRepository.find({
+      where: { spaceId },
+      order: { createdAt: 'DESC' },
+    })
   }
 
   /**

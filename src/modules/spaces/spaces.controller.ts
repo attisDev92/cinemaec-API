@@ -18,6 +18,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiBody,
 } from '@nestjs/swagger'
 import { SpacesService } from './spaces.service'
 import { CreateSpaceDto } from './dto/create-space.dto'
@@ -25,6 +26,8 @@ import { UpdateSpaceDto } from './dto/update-space.dto'
 import { QuerySpacesDto } from './dto/query-spaces.dto'
 import { JwtAuthGuard } from '../users/guards/jwt-auth.guard'
 import { CurrentUser } from '../users/decorators/current-user.decorator'
+import { SubmitSpaceReviewDto } from './dto/submit-space-review.dto'
+import { SpaceReview } from './entities/space-review.entity'
 
 interface JwtPayload {
   sub: number
@@ -229,5 +232,77 @@ export class SpacesController {
     @Body('status') status: string,
   ) {
     return this.spacesService.updateStatus(id, status)
+  }
+
+  @Post(':id/review')
+  @ApiOperation({
+    summary: 'Enviar revisión de un espacio (solo admin)',
+    description:
+      'Los administradores con permiso admin_spaces pueden aprobar, rechazar o solicitar correcciones para un espacio.',
+  })
+  @ApiParam({ name: 'id', description: 'ID del espacio', type: Number })
+  @ApiResponse({
+    status: 201,
+    description: 'Revisión registrada exitosamente',
+    type: SpaceReview,
+  })
+  @ApiBody({
+    description: 'Decisión y comentarios de la revisión',
+    type: SubmitSpaceReviewDto,
+    examples: {
+      aprobar: {
+        summary: 'Aprobar espacio',
+        value: {
+          decision: 'approve',
+          generalComment: 'Cumple con los requisitos mínimos',
+        },
+      },
+      solicitarCambios: {
+        summary: 'Solicitar correcciones',
+        value: {
+          decision: 'request_changes',
+          generalComment: 'Por favor corrige los siguientes puntos',
+          issues: [
+            { field: 'managerEmail', comment: 'El email no es válido' },
+            { field: 'capacity', comment: 'Debe ser un número mayor a 0' },
+          ],
+        },
+      },
+      rechazar: {
+        summary: 'Rechazar espacio',
+        value: {
+          decision: 'reject',
+          generalComment:
+            'No cumple con las políticas; revisa los requisitos de habilitación',
+        },
+      },
+    },
+  })
+  async submitReview(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SubmitSpaceReviewDto,
+  ) {
+    return this.spacesService.submitReview(id, user.userId, dto)
+  }
+
+  @Get(':id/reviews')
+  @ApiOperation({
+    summary: 'Obtener historial de revisiones de un espacio',
+    description:
+      'El dueño del espacio y admins con permiso admin_spaces pueden ver el historial de revisiones.',
+  })
+  @ApiParam({ name: 'id', description: 'ID del espacio', type: Number })
+  @ApiResponse({ status: 200, description: 'Historial obtenido' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de revisiones',
+    type: [SpaceReview],
+  })
+  async getReviews(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.spacesService.getReviewsBySpace(id, user.userId)
   }
 }

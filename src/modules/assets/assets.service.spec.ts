@@ -85,7 +85,7 @@ describe('AssetsService', () => {
 
       expect(mockFirebaseService.uploadFile).toHaveBeenCalledWith(
         file,
-        'company_logo/5',
+        'users/1/company_logo/5',
       )
       expect(mockAssetsRepository.create).toHaveBeenCalledWith({
         userId,
@@ -126,7 +126,7 @@ describe('AssetsService', () => {
 
       expect(mockFirebaseService.uploadFile).toHaveBeenCalledWith(
         file,
-        'space_logo',
+        'users/1/space_logo',
       )
     })
   })

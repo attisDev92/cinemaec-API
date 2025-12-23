@@ -13,10 +13,17 @@ import { LoginDto } from './dto/login.dto'
 describe('UsersService', () => {
   let service: UsersService
 
+  const mockUserQueryBuilder = {
+    where: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    getOne: jest.fn(),
+  }
+
   const mockUsersRepository = {
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
+    createQueryBuilder: jest.fn(() => mockUserQueryBuilder),
   }
 
   const mockProfilesRepository = {
@@ -190,11 +197,11 @@ describe('UsersService', () => {
         role: UserRole.USER,
         isActive: true,
         lastLogin: null as Date | null,
+        permissions: ['admin_spaces'],
       }
 
       const accessToken = 'jwt.token.here'
-
-      mockUsersRepository.findOne.mockResolvedValue(user)
+      mockUserQueryBuilder.getOne.mockResolvedValue(user)
       mockProfilesRepository.findOne.mockResolvedValue({ id: 1, userId: 1 })
       jest
         .spyOn(bcrypt, 'compare')
@@ -204,10 +211,13 @@ describe('UsersService', () => {
 
       const result = await service.login(loginDto)
 
-      expect(mockUsersRepository.findOne).toHaveBeenCalledWith({
-        where: { email: loginDto.email },
-        select: ['id', 'email', 'cedula', 'password', 'role', 'isActive'],
-      })
+      expect(mockUsersRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'user',
+      )
+      expect(mockUserQueryBuilder.where).toHaveBeenCalledWith(
+        'user.email = :email',
+        { email: loginDto.email },
+      )
       expect(mockProfilesRepository.findOne).toHaveBeenCalledWith({
         where: { userId: user.id },
       })
@@ -231,21 +241,21 @@ describe('UsersService', () => {
           role: user.role,
           is_active: user.isActive,
           has_profile: true,
+          permissions: ['admin_spaces'],
         },
       })
     })
 
     it('should throw UnauthorizedException if user not found', async () => {
-      mockUsersRepository.findOne.mockResolvedValue(null)
+      mockUserQueryBuilder.getOne.mockResolvedValue(null)
 
       await expect(service.login(loginDto)).rejects.toThrow(
         new UnauthorizedException('Credenciales incorrectas'),
       )
 
-      expect(mockUsersRepository.findOne).toHaveBeenCalledWith({
-        where: { email: loginDto.email },
-        select: ['id', 'email', 'cedula', 'password', 'role', 'isActive'],
-      })
+      expect(mockUsersRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'user',
+      )
       expect(mockJwtService.sign).not.toHaveBeenCalled()
     })
 
@@ -257,9 +267,10 @@ describe('UsersService', () => {
         password: 'hashedPassword',
         role: UserRole.USER,
         isActive: false,
+        permissions: null,
       }
 
-      mockUsersRepository.findOne.mockResolvedValue(user)
+      mockUserQueryBuilder.getOne.mockResolvedValue(user)
 
       await expect(service.login(loginDto)).rejects.toThrow(
         new UnauthorizedException(
@@ -278,9 +289,10 @@ describe('UsersService', () => {
         password: 'hashedPassword',
         role: UserRole.USER,
         isActive: true,
+        permissions: null,
       }
 
-      mockUsersRepository.findOne.mockResolvedValue(user)
+      mockUserQueryBuilder.getOne.mockResolvedValue(user)
       jest
         .spyOn(bcrypt, 'compare')
         .mockImplementation(() => Promise.resolve(false as never))
@@ -306,9 +318,10 @@ describe('UsersService', () => {
         role: UserRole.USER,
         isActive: true,
         lastLogin: null as Date | null,
+        permissions: null,
       }
 
-      mockUsersRepository.findOne.mockResolvedValue(user)
+      mockUserQueryBuilder.getOne.mockResolvedValue(user)
       mockProfilesRepository.findOne.mockResolvedValue(null)
       jest
         .spyOn(bcrypt, 'compare')
