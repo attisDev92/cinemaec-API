@@ -3,7 +3,7 @@ import {
   Get,
   Post,
   Body,
-  Patch,
+  Put,
   Param,
   Delete,
   UseGuards,
@@ -136,7 +136,7 @@ export class SpacesController {
     return this.spacesService.findOne(id)
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({
     summary: 'Actualizar un espacio',
     description:
@@ -208,7 +208,7 @@ export class SpacesController {
     return { message: 'Espacio eliminado correctamente' }
   }
 
-  @Patch(':id/status')
+  @Put(':id/status')
   @ApiOperation({
     summary: 'Cambiar el estado de un espacio',
     description:
