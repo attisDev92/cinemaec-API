@@ -3,16 +3,17 @@
 ## Resumen del flujo
 
 1. Admin con permiso `admin_spaces` inicia sesión y entra al módulo de revisión.
-2. Lista espacios por estado: `pending` (nuevos o esperando correcciones), `rejected`, `verified`.
+2. Lista espacios por estado: `pending` (nuevos o esperando correcciones), `under_review` (usuario ya corrigió), `rejected`, `verified`.
 3. Abre detalle, revisa info y timeline de revisiones.
 4. Envía decisión:
    - `approve` → espacio pasa a `verified`.
    - `request_changes` → pasa a `pending` (espera correcciones del usuario).
    - `reject` → pasa a `rejected`.
+5. Cuando el usuario actualiza su espacio (corrige campos), el estado cambia automáticamente a `under_review`.
 
 ## Endpoints clave
 
-- Listar espacios (filtrar por estado): `GET /spaces?status=pending`.
+- Listar espacios (filtrar por estado): `GET /spaces?status=pending` o `GET /spaces?status=under_review`.
 - Detalle de espacio: `GET /spaces/:id`.
 - Historial de revisiones: `GET /spaces/:id/reviews`.
 - Enviar revisión: `POST /spaces/:id/review` con body:
@@ -36,6 +37,7 @@
 ## Reglas de negocio (ya en backend)
 
 - Transiciones: `approve` → `verified`; `request_changes` → `pending` (usuario debe corregir); `reject` → `rejected`.
+- Cuando el usuario actualiza un espacio (mediante `PATCH /spaces/:id`), el estado cambia automáticamente a `under_review`.
 - Solo admins con `admin_spaces` pueden revisar.
 - Al crear espacio: notificación al dueño y a admins (`admin_spaces`).
 - Al revisar: notificación al dueño según decisión (success/warning/error).
@@ -62,8 +64,8 @@
 
 ## Tip: mapeo de estados en UI
 
-- `pending`: pendiente de revisión o esperando correcciones del usuario.
-- `under_review`: (no se usa actualmente).
+- `pending`: pendiente de revisión inicial o esperando correcciones del usuario.
+- `under_review`: usuario ya corrigió los campos señalados; admin debe reevaluar.
 - `verified`: aprobado.
 - `rejected`: rechazado.
 

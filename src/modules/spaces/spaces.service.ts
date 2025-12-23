@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { Space } from './entities/space.entity'
+import { Space, SpaceStatusEnum } from './entities/space.entity'
 import { CreateSpaceDto } from './dto/create-space.dto'
 import { UpdateSpaceDto } from './dto/update-space.dto'
 import { QuerySpacesDto } from './dto/query-spaces.dto'
@@ -436,6 +436,7 @@ export class SpacesService {
   /**
    * Actualizar un espacio
    * Solo el propietario puede actualizar su espacio
+   * Al actualizar, el estado cambia a 'under_review' para indicar que está listo para revisión
    */
   async update(
     id: number,
@@ -453,6 +454,9 @@ export class SpacesService {
 
     // Actualizar los campos
     Object.assign(space, updateSpaceDto)
+
+    // Cambiar estado a under_review para que el admin sepa que hay cambios
+    space.status = SpaceStatusEnum.UNDER_REVIEW
 
     return await this.spacesRepository.save(space)
   }
