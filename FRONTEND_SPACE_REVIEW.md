@@ -93,50 +93,90 @@
 
 ## Visualización de archivos (fotos, PDFs, documentos)
 
-El espacio devuelve IDs de assets (logoId, photosId, ciDocument, etc.). Para obtener URLs y detalles:
+El backend ahora retorna los assets completos directamente en la respuesta del espacio. Ya no necesitas llamadas adicionales.
 
-**Endpoint para obtener assets**:
-
-- `GET /assets/:id` → obtiene un asset individual con URL y tipo.
-
-**Ejemplo de flujo en frontend**:
-
-1. Obtén space: `GET /spaces/:id`.
-2. Extrae los IDs de assets (logoId, photosId, ciDocument, rucDocument, managerDocument, serviceBill, operatingLicense).
-3. Llama a `GET /assets/:id` para cada ID en paralelo:
+**Respuesta de `GET /spaces/:id`** (ahora incluye assets):
 
 ```typescript
-const assetIds = [
-  space.logoId,
-  ...space.photosId,
-  space.ciDocument,
-  space.rucDocument,
-  space.managerDocument,
-  space.serviceBill,
-  space.operatingLicense,
-]
-
-const assets = await Promise.all(assetIds.map((id) => getAsset(id)))
-```
-
-4. Agrupa por tipo de documento:
-   - Logo: asset con `ownerType === 'space_logo'`.
-   - Fotos: assets con `ownerType === 'space_photo'`.
-   - Documentos: todos los demás (cédula, RUC, licencia, etc.).
-
-**Componente de vista de archivo**:
-
-- Imágenes (logo, photos): muestra `<img src={asset.url} />`.
-- PDFs y documentos: muestra botón "Ver documento" con link a `asset.url`.
-
-**Helper en API**:
-
-```typescript
-export const getAsset = async (id: number): Promise<Asset> => {
-  const response = await api.get<Asset>(`/assets/${id}`)
-  return response.data
+{
+  id: 1,
+  name: "Teatro Nacional",
+  province: "Pichincha",
+  city: "Quito",
+  // ... más campos del espacio
+  status: "pending",
+  assets: {
+    logo: {
+      id: 123,
+      url: "https://storage.googleapis.com/...",
+      documentType: "logo",
+      ownerType: "space_logo",
+      createdAt: "2024-01-01T..."
+    },
+    photos: [
+      { id: 124, url: "https://...", documentType: "image", ownerType: "space_photo", ... },
+      { id: 125, url: "https://...", documentType: "image", ownerType: "space_photo", ... }
+    ],
+    documents: {
+      ci: { id: 126, url: "https://...", documentType: "document", ... },
+      ruc: null,
+      manager: { id: 127, url: "https://...", documentType: "document", ... },
+      serviceBill: { id: 128, url: "https://...", documentType: "document", ... },
+      operatingLicense: { id: 129, url: "https://...", documentType: "document", ... }
+    }
+  }
 }
 ```
+
+**Cómo usar en el frontend**:
+
+1. Obtén el espacio: `GET /spaces/:id`.
+2. Accede directamente a los assets desde la respuesta:
+
+```typescript
+const space = await getSpace(spaceId)
+const logoUrl = space.assets.logo?.url
+const photos = space.assets.photos.map((p) => p.url)
+const docUrls = {
+  ci: space.assets.documents.ci?.url,
+  ruc: space.assets.documents.ruc?.url,
+  manager: space.assets.documents.manager?.url,
+  serviceBill: space.assets.documents.serviceBill?.url,
+  operatingLicense: space.assets.documents.operatingLicense?.url,
+}
+```
+
+3. Renderiza en componentes:
+
+```typescript
+// Logo
+{space.assets.logo && (
+  <img src={space.assets.logo.url} alt="Logo del espacio" />
+)}
+
+// Fotos
+<div className="photos-gallery">
+  {space.assets.photos.map(photo => (
+    <img key={photo.id} src={photo.url} alt="Foto" />
+  ))}
+</div>
+
+// Documentos (links de descarga)
+<div className="documents">
+  {space.assets.documents.ci && (
+    <a href={space.assets.documents.ci.url} download="ci.pdf">
+      Descargar Cédula
+    </a>
+  )}
+  {space.assets.documents.operatingLicense && (
+    <a href={space.assets.documents.operatingLicense.url} download="license.pdf">
+      Descargar Licencia
+    </a>
+  )}
+</div>
+```
+
+**URLs son públicas** - no requieren autenticación adicional. Puedes usarlas directamente en `<img src={url} />` o `<a href={url}>`.
 
 ## Checklist de implementación
 
