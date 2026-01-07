@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm'
+import { MigrationInterface, QueryRunner, Table } from 'typeorm'
 
 export class UpdateUserEntity1732071600000 implements MigrationInterface {
   name = 'UpdateUserEntity1732071600000'
@@ -15,7 +15,90 @@ export class UpdateUserEntity1732071600000 implements MigrationInterface {
 
     // Renombrar columna cedula a cedula (si es necesario mantener datos)
     const tableExists = await queryRunner.hasTable('users')
-    if (tableExists) {
+    if (!tableExists) {
+      // Create users table if it doesn't exist
+      await queryRunner.createTable(
+        new Table({
+          name: 'users',
+          columns: [
+            {
+              name: 'id',
+              type: 'serial',
+              isPrimary: true,
+            },
+            {
+              name: 'email',
+              type: 'varchar',
+              isUnique: true,
+              isNullable: false,
+            },
+            {
+              name: 'password',
+              type: 'varchar',
+              isNullable: false,
+            },
+            {
+              name: 'first_name',
+              type: 'varchar',
+              isNullable: true,
+            },
+            {
+              name: 'last_name',
+              type: 'varchar',
+              isNullable: true,
+            },
+            {
+              name: 'cedula',
+              type: 'varchar',
+              isNullable: true,
+            },
+            {
+              name: 'is_active',
+              type: 'boolean',
+              default: true,
+              isNullable: false,
+            },
+            {
+              name: 'email_verification_token',
+              type: 'varchar',
+              isNullable: true,
+            },
+            {
+              name: 'password_reset_token',
+              type: 'varchar',
+              isNullable: true,
+            },
+            {
+              name: 'password_reset_expires',
+              type: 'timestamp',
+              isNullable: true,
+            },
+            {
+              name: 'role',
+              type: 'user_role',
+              default: "'user'",
+              isNullable: false,
+            },
+            {
+              name: 'profile_id',
+              type: 'integer',
+              isNullable: true,
+            },
+            {
+              name: 'last_login',
+              type: 'timestamp',
+              isNullable: true,
+            },
+            {
+              name: 'created_at',
+              type: 'timestamp',
+              default: 'now()',
+            },
+          ],
+        }),
+        true,
+      )
+    } else if (tableExists) {
       const table = await queryRunner.getTable('users')
 
       // Agregar columna role si no existe
