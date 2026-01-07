@@ -13,7 +13,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { Multer } from 'multer'
+import * as multer from 'multer'
 import {
   ApiTags,
   ApiOperation,
@@ -86,7 +86,7 @@ export class AssetsController {
   })
   async uploadAsset(
     @CurrentUser() user: JwtPayload,
-    @UploadedFile() file: Multer.File,
+    @UploadedFile() file: multer.File,
     @Body('documentType') documentType: string,
     @Body('ownerType') ownerType: string,
     @Body('ownerId') ownerId?: string,
@@ -156,7 +156,7 @@ export class AssetsController {
   async replaceAsset(
     @CurrentUser() user: JwtPayload,
     @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Multer.File,
+    @UploadedFile() file: multer.File,
   ): Promise<Asset> {
     return this.assetsService.replaceAsset(id, user.userId, file)
   }
