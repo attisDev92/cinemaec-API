@@ -3,143 +3,138 @@ import { MigrationInterface, QueryRunner } from 'typeorm'
 export class RenameToCamelCase1734000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Renombrar columnas de la tabla users
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "is_active" TO "isActive"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "email_verification_token" TO "emailVerificationToken"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "password_reset_token" TO "passwordResetToken"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "password_reset_expires" TO "passwordResetExpires"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "profile_id" TO "profileId"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "last_login" TO "lastLogin"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "created_at" TO "createdAt"`,
-    )
+    const usersTableExists = await queryRunner.hasTable('users')
+    if (usersTableExists) {
+      const usersTable = await queryRunner.getTable('users')
 
-    // Renombrar columnas de la tabla users_profile
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "full_name" TO "fullName"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "legal_name" TO "legalName"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "trade_name" TO "tradeName"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "legal_status" TO "legalStatus"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "user_id" TO "userId"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "created_at" TO "createdAt"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "updated_at" TO "updatedAt"`,
-    )
+      // Helper to safely rename column if it exists
+      const renameIfExists = async (column: string, newName: string) => {
+        if (usersTable?.findColumnByName(column)) {
+          await queryRunner.query(
+            `ALTER TABLE "users" RENAME COLUMN "${column}" TO "${newName}"`,
+          )
+        }
+      }
+
+      await renameIfExists('is_active', 'isActive')
+      await renameIfExists('email_verification_token', 'emailVerificationToken')
+      await renameIfExists('password_reset_token', 'passwordResetToken')
+      await renameIfExists('password_reset_expires', 'passwordResetExpires')
+      await renameIfExists('profile_id', 'profileId')
+      await renameIfExists('last_login', 'lastLogin')
+      await renameIfExists('created_at', 'createdAt')
+    }
+
+    // Renombrar columnas de la tabla users_profile (si existe)
+    const usersProfileTableExists = await queryRunner.hasTable('users_profile')
+    if (usersProfileTableExists) {
+      const usersProfileTable = await queryRunner.getTable('users_profile')
+
+      const renameIfExists = async (column: string, newName: string) => {
+        if (usersProfileTable?.findColumnByName(column)) {
+          await queryRunner.query(
+            `ALTER TABLE "users_profile" RENAME COLUMN "${column}" TO "${newName}"`,
+          )
+        }
+      }
+
+      await renameIfExists('full_name', 'fullName')
+      await renameIfExists('legal_name', 'legalName')
+      await renameIfExists('trade_name', 'tradeName')
+      await renameIfExists('legal_status', 'legalStatus')
+      await renameIfExists('user_id', 'userId')
+      await renameIfExists('created_at', 'createdAt')
+      await renameIfExists('updated_at', 'updatedAt')
+    }
 
     // Renombrar columnas de la tabla assets
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "user_id" TO "userId"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "document_type" TO "documentType"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "owner_type" TO "ownerType"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "owner_id" TO "ownerId"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "firebase_path" TO "firebasePath"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "created_at" TO "createdAt"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "updated_at" TO "updatedAt"`,
-    )
+    const assetsTableExists = await queryRunner.hasTable('assets')
+    if (assetsTableExists) {
+      const assetsTable = await queryRunner.getTable('assets')
+
+      const renameIfExists = async (column: string, newName: string) => {
+        if (assetsTable?.findColumnByName(column)) {
+          await queryRunner.query(
+            `ALTER TABLE "assets" RENAME COLUMN "${column}" TO "${newName}"`,
+          )
+        }
+      }
+
+      await renameIfExists('user_id', 'userId')
+      await renameIfExists('document_type', 'documentType')
+      await renameIfExists('owner_type', 'ownerType')
+      await renameIfExists('owner_id', 'ownerId')
+      await renameIfExists('firebase_path', 'firebasePath')
+      await renameIfExists('created_at', 'createdAt')
+      await renameIfExists('updated_at', 'updatedAt')
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Revertir renombrado de columnas de la tabla users
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "isActive" TO "is_active"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "emailVerificationToken" TO "email_verification_token"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "passwordResetToken" TO "password_reset_token"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "passwordResetExpires" TO "password_reset_expires"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "profileId" TO "profile_id"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "lastLogin" TO "last_login"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users" RENAME COLUMN "createdAt" TO "created_at"`,
-    )
+    const usersTableExists = await queryRunner.hasTable('users')
+    if (usersTableExists) {
+      const usersTable = await queryRunner.getTable('users')
+
+      const renameIfExists = async (column: string, newName: string) => {
+        if (usersTable?.findColumnByName(column)) {
+          await queryRunner.query(
+            `ALTER TABLE "users" RENAME COLUMN "${column}" TO "${newName}"`,
+          )
+        }
+      }
+
+      await renameIfExists('isActive', 'is_active')
+      await renameIfExists('emailVerificationToken', 'email_verification_token')
+      await renameIfExists('passwordResetToken', 'password_reset_token')
+      await renameIfExists('passwordResetExpires', 'password_reset_expires')
+      await renameIfExists('profileId', 'profile_id')
+      await renameIfExists('lastLogin', 'last_login')
+      await renameIfExists('createdAt', 'created_at')
+    }
 
     // Revertir renombrado de columnas de la tabla users_profile
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "fullName" TO "full_name"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "legalName" TO "legal_name"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "tradeName" TO "trade_name"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "legalStatus" TO "legal_status"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "userId" TO "user_id"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "createdAt" TO "created_at"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "users_profile" RENAME COLUMN "updatedAt" TO "updated_at"`,
-    )
+    const usersProfileTableExists = await queryRunner.hasTable('users_profile')
+    if (usersProfileTableExists) {
+      const usersProfileTable = await queryRunner.getTable('users_profile')
+
+      const renameIfExists = async (column: string, newName: string) => {
+        if (usersProfileTable?.findColumnByName(column)) {
+          await queryRunner.query(
+            `ALTER TABLE "users_profile" RENAME COLUMN "${column}" TO "${newName}"`,
+          )
+        }
+      }
+
+      await renameIfExists('fullName', 'full_name')
+      await renameIfExists('legalName', 'legal_name')
+      await renameIfExists('tradeName', 'trade_name')
+      await renameIfExists('legalStatus', 'legal_status')
+      await renameIfExists('userId', 'user_id')
+      await renameIfExists('createdAt', 'created_at')
+      await renameIfExists('updatedAt', 'updated_at')
+    }
 
     // Revertir renombrado de columnas de la tabla assets
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "userId" TO "user_id"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "documentType" TO "document_type"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "ownerType" TO "owner_type"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "ownerId" TO "owner_id"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "firebasePath" TO "firebase_path"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "createdAt" TO "created_at"`,
-    )
-    await queryRunner.query(
-      `ALTER TABLE "assets" RENAME COLUMN "updatedAt" TO "updated_at"`,
-    )
+    const assetsTableExists = await queryRunner.hasTable('assets')
+    if (assetsTableExists) {
+      const assetsTable = await queryRunner.getTable('assets')
+
+      const renameIfExists = async (column: string, newName: string) => {
+        if (assetsTable?.findColumnByName(column)) {
+          await queryRunner.query(
+            `ALTER TABLE "assets" RENAME COLUMN "${column}" TO "${newName}"`,
+          )
+        }
+      }
+
+      await renameIfExists('userId', 'user_id')
+      await renameIfExists('documentType', 'document_type')
+      await renameIfExists('ownerType', 'owner_type')
+      await renameIfExists('ownerId', 'owner_id')
+      await renameIfExists('firebasePath', 'firebase_path')
+      await renameIfExists('createdAt', 'created_at')
+      await renameIfExists('updatedAt', 'updated_at')
+    }
   }
 }
