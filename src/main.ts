@@ -29,7 +29,10 @@ async function bootstrap() {
   const allowedOrigins = corsOrigins.split(',').map((origin) => origin.trim())
 
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (
+      origin,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       // Permitir requests sin origen (ej: Postman, mobile apps)
       if (!origin) {
         return callback(null, true)

@@ -10,6 +10,8 @@ import { AssetsModule } from './modules/assets/assets.module'
 import { SpacesModule } from './modules/spaces/spaces.module'
 import { ContractsModule } from './modules/contracts/contracts.module'
 import { NotificationsModule } from './modules/notifications/notifications.module'
+import { FirebaseModule } from './common/firebase/firebase.module'
+import { getDatabaseConfig } from './config/database.config'
 
 import envConfig from './config/env.config'
 
@@ -24,18 +26,9 @@ import envConfig from './config/env.config'
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('env.DB_HOST'),
-        port: configService.get('env.DB_PORT'),
-        username: configService.get('env.DB_USERNAME'),
-        password: configService.get('env.DB_PASSWORD'),
-        database: configService.get('env.DB_NAME'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('env.NODE_ENV') === 'development',
-        logging: configService.get('env.NODE_ENV') === 'development',
-      }),
+      useFactory: getDatabaseConfig,
     }),
+    FirebaseModule,
     UsersModule,
     EmailsModule,
     ProfilesModule,

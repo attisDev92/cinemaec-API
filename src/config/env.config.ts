@@ -10,6 +10,13 @@ export default registerAs('env', () => ({
   DB_USERNAME: process.env.DB_USERNAME || 'postgres',
   DB_PASSWORD: process.env.DB_PASSWORD || '',
   DB_NAME: process.env.DB_NAME || 'cinemaec',
+  DB_SSL: String(process.env.DB_SSL || '').toLowerCase() === 'true',
+
+  // Firebase configuration
+  FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
+  FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
+  FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
+  FIREBASE_DATABASE_URL: process.env.FIREBASE_DATABASE_URL,
 
   // JWT configuration
   JWT_SECRET: process.env.JWT_SECRET,

@@ -12,6 +12,7 @@
     "start:dev": "NODE_ENV=development nest start --watch",
     "start:debug": "NODE_ENV=development nest start --debug --watch",
     "start:prod": "NODE_ENV=production node dist/main",
+    "db:check:prod": "NODE_ENV=production node scripts/check-db.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "NODE_ENV=test jest",
     "test:watch": "NODE_ENV=test jest --watch",
@@ -22,7 +23,11 @@
     "migration:run": "npm run typeorm migration:run -- -d src/data-source.ts",
     "migration:revert": "npm run typeorm migration:revert -- -d src/data-source.ts",
     "migration:generate": "npm run typeorm migration:generate -- -d src/data-source.ts",
-    "migration:create": "npm run typeorm migration:create"
+    "migration:create": "npm run typeorm migration:create",
+    "docker:build": "docker build -t cinema-ec-backend:latest .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env.production cinema-ec-backend:latest",
+    "deploy:cloud-run": "gcloud run deploy cinema-ec-backend --source . --platform managed --region us-east4 --allow-unauthenticated --set-env-vars=NODE_ENV=production",
+    "validate:render": "bash scripts/validate-render-env.sh"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",
