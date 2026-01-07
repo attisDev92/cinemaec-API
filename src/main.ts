@@ -25,37 +25,14 @@ async function bootstrap() {
 
   // CORS configuration - soporte para múltiples orígenes incluyendo Cloudflare Tunnel
   const corsOrigins =
-    config.get<string>('CORS_ORIGIN') || 'http://localhost:3000'
+    config.get<string>('CORS_ORIGIN') ||
+    'https://app.cinemaec.com,http://localhost:3000'
   const allowedOrigins = corsOrigins.split(',').map((origin) => origin.trim())
 
+  logger.log(`🔐 CORS Origins configurados: ${allowedOrigins.join(', ')}`)
+
   app.enableCors({
-    origin: (
-      origin,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      // Permitir requests sin origen (ej: Postman, mobile apps)
-      if (!origin) {
-        return callback(null, true)
-      }
-
-      // Verificar si el origen está en la lista permitida
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true)
-      }
-
-      // Permitir cualquier dominio de Cloudflare Tunnel
-      if (origin.includes('trycloudflare.com')) {
-        return callback(null, true)
-      }
-
-      // Permitir localhost en desarrollo
-      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        return callback(null, true)
-      }
-
-      // Rechazar otros orígenes
-      callback(new Error('Not allowed by CORS'))
-    },
+    origin: true, // Temporal: permitir todos los orígenes para diagnosticar
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: [
