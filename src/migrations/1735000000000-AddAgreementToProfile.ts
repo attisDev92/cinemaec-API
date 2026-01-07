@@ -4,13 +4,31 @@ export class AddAgreementToProfile1735000000000 implements MigrationInterface {
   name = 'AddAgreementToProfile1735000000000'
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Agregar el valor user_agreement al enum assets_ownertype_enum si no existe
+    // Agregar el valor user_agreement al enum de owner si existe el tipo y no tiene el valor
+    // Soporta ambos nombres históricos: asset_owner_enum (nuevo) y assets_ownertype_enum (antiguo)
     await queryRunner.query(`
-      DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type t 
-          JOIN pg_enum e ON t.oid = e.enumtypid 
-          WHERE t.typname = 'assets_ownertype_enum' AND e.enumlabel = 'user_agreement') THEN
-          ALTER TYPE assets_ownertype_enum ADD VALUE 'user_agreement';
+      DO $$ 
+      BEGIN
+        -- Nuevo nombre de enum
+        IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'asset_owner_enum') THEN
+          IF NOT EXISTS (
+            SELECT 1 
+            FROM pg_type t 
+            JOIN pg_enum e ON t.oid = e.enumtypid 
+            WHERE t.typname = 'asset_owner_enum' AND e.enumlabel = 'user_agreement'
+          ) THEN
+            ALTER TYPE asset_owner_enum ADD VALUE 'user_agreement';
+          END IF;
+        -- Nombre legacy del enum
+        ELSIF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'assets_ownertype_enum') THEN
+          IF NOT EXISTS (
+            SELECT 1 
+            FROM pg_type t 
+            JOIN pg_enum e ON t.oid = e.enumtypid 
+            WHERE t.typname = 'assets_ownertype_enum' AND e.enumlabel = 'user_agreement'
+          ) THEN
+            ALTER TYPE assets_ownertype_enum ADD VALUE 'user_agreement';
+          END IF;
         END IF;
       END $$;
     `)
