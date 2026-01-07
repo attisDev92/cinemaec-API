@@ -122,7 +122,7 @@ export class CreateAssetsTable1733000000000 implements MigrationInterface {
       'assets',
       new TableIndex({
         name: 'IDX_ASSETS_OWNER',
-        columnNames: ['owner_type', 'owner_id'],
+        columnNames: ['ownerType', 'ownerId'],
       }),
     )
   }
