@@ -80,12 +80,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig)
   SwaggerModule.setup('api', app, document)
 
-  await app.listen(port)
+  await app.listen(port, '0.0.0.0')
   logger.log(
-    `🚀 Application is running in ${config.get<string>('NODE_ENV')} mode on: http://localhost:${port}`,
+    `🚀 Application is running in ${config.get<string>('NODE_ENV')} mode on: http://0.0.0.0:${port}`,
   )
   logger.log(
-    `📚 Swagger documentation available at: http://localhost:${port}/api`,
+    `📚 Swagger documentation available at: http://0.0.0.0:${port}/api`,
   )
 }
 
