@@ -6,6 +6,9 @@ export const getDatabaseConfig = (
 ): TypeOrmModuleOptions => {
   const nodeEnv = configService.get<string>('env.NODE_ENV')
   const dbSsl = configService.get<boolean>('env.DB_SSL')
+  const poolSize = Number(configService.get<string>('env.DB_POOL_SIZE')) || 5
+  const connectionTimeoutMillis =
+    Number(configService.get<string>('env.DB_CONNECTION_TIMEOUT_MS')) || 30000
 
   return {
     type: 'postgres',
@@ -20,5 +23,9 @@ export const getDatabaseConfig = (
     logging: nodeEnv === 'development',
     migrationsRun: nodeEnv === 'production',
     migrations: [__dirname + '/../migrations/*{.ts,.js}'],
+    extra: {
+      max: poolSize,
+      connectionTimeoutMillis,
+    },
   }
 }
