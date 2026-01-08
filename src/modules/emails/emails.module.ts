@@ -11,11 +11,14 @@ import { EmailsService } from './emails.service'
       useFactory: (configService: ConfigService) => ({
         transport: {
           host: configService.get<string>('env.MAIL_HOST'),
-          port: configService.get<number>('env.MAIL_PORT'),
-          secure: false, // true para puerto 465, false para otros puertos
+          port: configService.get<number>('env.MAIL_PORT') || 465,
+          secure: (configService.get<number>('env.MAIL_PORT') || 465) === 465, // true para 465, false para 587
           auth: {
             user: configService.get<string>('env.MAIL_USER'),
             pass: configService.get<string>('env.MAIL_PASSWORD'),
+          },
+          tls: {
+            rejectUnauthorized: false, // evita fallos por certificados en Gmail
           },
         },
         defaults: {
