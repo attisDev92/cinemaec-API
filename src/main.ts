@@ -12,18 +12,17 @@ async function bootstrap() {
   const port = config.get<number>('PORT') || 3000
   const logger = new Logger('Bootstrap')
 
-  // Ejecutar migraciones pendientes
+  // Ejecutar migraciones pendientes (siempre) para asegurar esquema actualizado
   try {
     const dataSource = app.get(DataSource)
-    if (dataSource && dataSource.isInitialized) {
-      const pendingMigrations = await dataSource.query(
-        `SELECT * FROM "typeorm_metadata" WHERE "type" = 'migration' ORDER BY "timestamp" ASC`,
-      )
-      if (pendingMigrations.length > 0) {
-        logger.log('🔄 Ejecutando migraciones pendientes...')
-        await dataSource.runMigrations()
-        logger.log('✅ Migraciones ejecutadas exitosamente')
-      }
+    if (dataSource && !dataSource.isInitialized) {
+      await dataSource.initialize()
+    }
+
+    if (dataSource) {
+      logger.log('🔄 Ejecutando migraciones pendientes...')
+      await dataSource.runMigrations()
+      logger.log('✅ Migraciones ejecutadas exitosamente')
     }
   } catch (error) {
     logger.error('⚠️ Error ejecutando migraciones:', error)
