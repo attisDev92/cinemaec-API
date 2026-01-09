@@ -29,6 +29,15 @@ export default registerAs('env', () => ({
   MAIL_PASSWORD: process.env.MAIL_PASSWORD,
   MAIL_FROM: process.env.MAIL_FROM || 'CinemaEC <noreply@cinemaec.com>',
 
+  // Optional Email provider via HTTP API (Resend)
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  RESEND_FROM: process.env.RESEND_FROM || process.env.MAIL_FROM,
+
+  // Pool tuning
+  DB_POOL_SIZE: Number(process.env.DB_POOL_SIZE || '0') || undefined,
+  DB_CONNECTION_TIMEOUT_MS:
+    Number(process.env.DB_CONNECTION_TIMEOUT_MS || '0') || undefined,
+
   // CORS configuration
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
 }))

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { MailerService } from '@nestjs-modules/mailer'
 import { ConfigService } from '@nestjs/config'
+import { Resend } from 'resend'
 
 @Injectable()
 export class EmailsService {
@@ -139,10 +140,43 @@ export class EmailsService {
       this.logger.log(`✅ Email de verificación enviado a: ${email}`)
     } catch (error) {
       this.logger.error(
-        `❌ Error al enviar email de verificación a ${email}: ${error.message}`,
+        `❌ Error SMTP al enviar verificación a ${email}: ${error.message}`,
       )
-      // No lanzamos el error para no interrumpir el registro del usuario
-      // El usuario podrá solicitar reenvío del email más tarde
+      // Fallback via Resend API si está configurado
+      const apiKey = this.configService.get<string>('env.RESEND_API_KEY')
+      const from =
+        this.configService.get<string>('env.RESEND_FROM') ||
+        this.configService.get<string>('env.MAIL_FROM')
+      if (apiKey && from) {
+        try {
+          const resend = new Resend(apiKey)
+          await resend.emails.send({
+            from,
+            to: email,
+            subject: 'Verifica tu cuenta de CinemaEC',
+            html: `
+              <!DOCTYPE html>
+              <html>
+                <body>
+                  <p>Gracias por registrarte. Verifica tu correo aquí:</p>
+                  <p><a href="${verificationUrl}">Verificar Email</a></p>
+                  <p>Si el botón no funciona, copia este enlace:</p>
+                  <p>${verificationUrl}</p>
+                </body>
+              </html>
+            `,
+          })
+          this.logger.log(
+            `✅ Resend: email de verificación enviado a: ${email}`,
+          )
+          return
+        } catch (err: any) {
+          this.logger.error(
+            `❌ Resend también falló al enviar verificación a ${email}: ${err?.message}`,
+          )
+        }
+      }
+      // No lanzamos el error para no interrumpir el registro
     }
   }
 
@@ -285,10 +319,166 @@ export class EmailsService {
       this.logger.log(`✅ Email de recuperación enviado a: ${email}`)
     } catch (error) {
       this.logger.error(
-        `❌ Error al enviar email de recuperación a ${email}: ${error.message}`,
+        `❌ Error SMTP al enviar recuperación a ${email}: ${error.message}`,
       )
+      const apiKey = this.configService.get<string>('env.RESEND_API_KEY')
+      const from =
+        this.configService.get<string>('env.RESEND_FROM') ||
+        this.configService.get<string>('env.MAIL_FROM')
+      if (apiKey && from) {
+        try {
+          const resend = new Resend(apiKey)
+          await resend.emails.send({
+            from,
+            to: email,
+            subject: 'Restablece tu contraseña - CinemaEC',
+            html: `
+              <!DOCTYPE html>
+              <html>
+                <body>
+                  <p>Para restablecer tu contraseña haz clic aquí:</p>
+                  <p><a href="${resetUrl}">Restablecer Contraseña</a></p>
+                  <p>Si el botón no funciona, copia este enlace:</p>
+                  <p>${resetUrl}</p>
+                </body>
+              </html>
+            `,
+          })
+          this.logger.log(
+            `✅ Resend: email de recuperación enviado a: ${email}`,
+          )
+          return
+        } catch (err: any) {
+          this.logger.error(
+            `❌ Resend también falló al enviar recuperación a ${email}: ${err?.message}`,
+          )
+        }
+      }
       // No lanzamos el error para mantener la seguridad
-      // No queremos revelar si el email existe o no
+    }
+  }
+
+  /**
+   * Envía un email de notificación a administradores
+   */
+  async sendAdminNotificationEmail(
+    email: string,
+    subject: string,
+    message: string,
+  ): Promise<void> {
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject,
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <style>
+                body { 
+                  font-family: Arial, sans-serif; 
+                  line-height: 1.6; 
+                  color: #404040;
+                  background-color: #f5f5f5;
+                  margin: 0;
+                  padding: 0;
+                }
+                .container { 
+                  max-width: 600px; 
+                  margin: 0 auto; 
+                  background-color: #ffffff;
+                }
+                .header { 
+                  background: linear-gradient(135deg, #EB0045 0%, #9b0033 100%);
+                  color: white; 
+                  padding: 40px 20px; 
+                  text-align: center;
+                }
+                .header h1 {
+                  margin: 0;
+                  font-size: 32px;
+                  font-weight: bold;
+                }
+                .content { 
+                  background-color: #ffffff; 
+                  padding: 40px 30px;
+                  color: #404040;
+                }
+                .content h2 {
+                  color: #EB0045;
+                  margin-top: 0;
+                }
+                .alert {
+                  background-color: #fff3f6;
+                  border-left: 4px solid #EB0045;
+                  padding: 15px;
+                  margin: 20px 0;
+                  border-radius: 4px;
+                }
+                .footer { 
+                  text-align: center; 
+                  padding: 30px 20px; 
+                  font-size: 12px; 
+                  color: #a8a8a8;
+                  background-color: #404040;
+                }
+                .footer p {
+                  margin: 5px 0;
+                  color: #a8a8a8;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>🎬 CinemaEC Admin</h1>
+                </div>
+                <div class="content">
+                  <h2>${subject}</h2>
+                  <div class="alert">
+                    <p>${message}</p>
+                  </div>
+                  <p>Por favor accede a la plataforma para revisar esta información.</p>
+                </div>
+                <div class="footer">
+                  <p>Este es un email automatizado del sistema de CinemaEC.</p>
+                  <p>&copy; ${new Date().getFullYear()} CinemaEC. Todos los derechos reservados.</p>
+                </div>
+              </div>
+            </body>
+          </html>
+        `,
+      })
+
+      this.logger.log(`✅ Email de notificación enviado a: ${email}`)
+    } catch (error) {
+      this.logger.error(
+        `❌ Error SMTP al enviar notificación a ${email}: ${error.message}`,
+      )
+      // Fallback via Resend API si está configurado
+      const apiKey = this.configService.get<string>('env.RESEND_API_KEY')
+      const from =
+        this.configService.get<string>('env.RESEND_FROM') ||
+        this.configService.get<string>('env.MAIL_FROM')
+      if (apiKey && from) {
+        try {
+          const resend = new Resend(apiKey)
+          await resend.emails.send({
+            from,
+            to: email,
+            subject,
+            html: `<p>${message}</p>`,
+          })
+          this.logger.log(
+            `✅ Resend: email de notificación enviado a: ${email}`,
+          )
+          return
+        } catch (err: any) {
+          this.logger.error(
+            `❌ Resend también falló al enviar notificación a ${email}: ${err?.message}`,
+          )
+        }
+      }
     }
   }
 }

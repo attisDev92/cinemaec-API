@@ -14,6 +14,7 @@ import { AssetsService } from '../assets/assets.service'
 import { NotificationsService } from '../notifications/notifications.service'
 import { NotificationTypeEnum } from '../notifications/entities/notification.entity'
 import { User, UserRole, PermissionEnum } from '../users/entities/user.entity'
+import { EmailsService } from '../emails/emails.service'
 import {
   SpaceReview,
   SpaceReviewDecisionEnum,
@@ -31,6 +32,7 @@ export class SpacesService {
     private spaceReviewsRepository: Repository<SpaceReview>,
     private assetsService: AssetsService,
     private notificationsService: NotificationsService,
+    private emailsService: EmailsService,
   ) {}
 
   /**
@@ -192,9 +194,10 @@ export class SpacesService {
         })
         .getMany()
 
-      // Crear notificación para cada admin
-      const notificationPromises = admins.map((admin) =>
-        this.notificationsService.create({
+      // Crear notificación para cada admin y enviar email
+      const notificationPromises = admins.map(async (admin) => {
+        // Crear notificación en DB
+        await this.notificationsService.create({
           userId: admin.id,
           title: 'Nuevo espacio registrado',
           message: `Se ha registrado un nuevo espacio: "${space.name}" en ${space.city}, ${space.province}`,
@@ -202,8 +205,22 @@ export class SpacesService {
           link: `/spaces/${space.id}`,
           referenceType: 'space',
           referenceId: space.id,
-        }),
-      )
+        })
+
+        // Enviar email de notificación
+        try {
+          await this.emailsService.sendAdminNotificationEmail(
+            admin.email,
+            'Nuevo espacio registrado',
+            `Se ha registrado un nuevo espacio: "${space.name}" ubicado en ${space.city}, ${space.province}. Por favor revísalo en la plataforma.`,
+          )
+        } catch (emailError) {
+          console.error(
+            `Error enviando email a admin ${admin.email}:`,
+            emailError,
+          )
+        }
+      })
 
       await Promise.all(notificationPromises)
     } catch (error) {
