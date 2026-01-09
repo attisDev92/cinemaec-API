@@ -4,12 +4,31 @@ import { ConfigService } from '@nestjs/config'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
 import { ValidationPipe, Logger } from '@nestjs/common'
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor'
+import { DataSource } from 'typeorm'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   const config = app.get(ConfigService)
   const port = config.get<number>('PORT') || 3000
   const logger = new Logger('Bootstrap')
+
+  // Ejecutar migraciones pendientes
+  try {
+    const dataSource = app.get(DataSource)
+    if (dataSource && dataSource.isInitialized) {
+      const pendingMigrations = await dataSource.query(
+        `SELECT * FROM "typeorm_metadata" WHERE "type" = 'migration' ORDER BY "timestamp" ASC`,
+      )
+      if (pendingMigrations.length > 0) {
+        logger.log('🔄 Ejecutando migraciones pendientes...')
+        await dataSource.runMigrations()
+        logger.log('✅ Migraciones ejecutadas exitosamente')
+      }
+    }
+  } catch (error) {
+    logger.error('⚠️ Error ejecutando migraciones:', error)
+    // No lanzamos error para no bloquear startup en caso de problemas
+  }
 
   // Logging interceptor global
   app.useGlobalInterceptors(new LoggingInterceptor())
