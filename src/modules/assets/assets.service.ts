@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -17,6 +18,8 @@ export class AssetsService {
     private assetsRepository: Repository<Asset>,
     private firebaseService: FirebaseService,
   ) {}
+
+  private readonly logger = new Logger(AssetsService.name)
 
   /**
    * Sube un archivo y guarda su metadata en la base de datos
@@ -45,20 +48,31 @@ export class AssetsService {
       path += `/${ownerId}`
     }
 
-    // Subir archivo a Firebase Storage
-    const { url, fullPath } = await this.firebaseService.uploadFile(file, path)
+    try {
+      // Subir archivo a Firebase Storage
+      const { url, fullPath } = await this.firebaseService.uploadFile(
+        file,
+        path,
+      )
 
-    // Guardar metadata en base de datos
-    const asset = this.assetsRepository.create({
-      userId,
-      documentType,
-      ownerType,
-      ownerId: ownerId || null,
-      url,
-      firebasePath: fullPath,
-    })
+      // Guardar metadata en base de datos
+      const asset = this.assetsRepository.create({
+        userId,
+        documentType,
+        ownerType,
+        ownerId: ownerId || null,
+        url,
+        firebasePath: fullPath,
+      })
 
-    return await this.assetsRepository.save(asset)
+      return await this.assetsRepository.save(asset)
+    } catch (error) {
+      this.logger.error(
+        `Error subiendo asset: user=${userId} ownerType=${ownerType} ownerId=${ownerId ?? 'null'} docType=${documentType} size=${file.size} name=${file.originalname} -> ${error.message}`,
+        error.stack,
+      )
+      throw error
+    }
   }
 
   /**
