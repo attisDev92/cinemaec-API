@@ -40,4 +40,7 @@ export default registerAs('env', () => ({
 
   // CORS configuration
   CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
+
+  // Frontend URL for email links
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
 }))

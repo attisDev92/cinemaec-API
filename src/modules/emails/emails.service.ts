@@ -17,7 +17,8 @@ export class EmailsService {
    */
   async sendVerificationEmail(email: string, token: string): Promise<void> {
     const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'
+      this.configService.get<string>('env.FRONTEND_URL') ||
+      'http://localhost:3000'
     const verificationUrl = `${frontendUrl}/auth/verify?token=${token}`
 
     try {
@@ -185,7 +186,8 @@ export class EmailsService {
    */
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
     const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'
+      this.configService.get<string>('env.FRONTEND_URL') ||
+      'http://localhost:3000'
     const resetUrl = `${frontendUrl}/auth/reset-password?token=${token}`
 
     try {
