@@ -16,6 +16,8 @@ import { RegisterDto } from './dto/register.dto'
 import { LoginDto } from './dto/login.dto'
 import { UpdateUserPermissionsDto } from './dto/update-user-permissions.dto'
 import { EmailsService } from '../emails/emails.service'
+import { NotificationsService } from '../notifications/notifications.service'
+import { NotificationTypeEnum } from '../notifications/entities/notification.entity'
 import { Profile } from '../profiles/entities/profile.entity'
 
 @Injectable()
@@ -26,6 +28,7 @@ export class UsersService {
     @InjectRepository(Profile)
     private profilesRepository: Repository<Profile>,
     private emailsService: EmailsService,
+    private notificationsService: NotificationsService,
     private jwtService: JwtService,
   ) {}
 
@@ -186,8 +189,59 @@ export class UsersService {
 
     await this.usersRepository.save(user)
 
+    // Notificar a admins con permiso admin_users sobre el nuevo usuario registrado
+    await this.notifyAdminsAboutNewUser(user)
+
     return {
       message: 'Email verificado exitosamente. Ya puedes iniciar sesión.',
+    }
+  }
+
+  /**
+   * Notificar a todos los admins con permiso admin_users sobre un nuevo usuario registrado
+   */
+  private async notifyAdminsAboutNewUser(user: User): Promise<void> {
+    try {
+      // Buscar todos los usuarios admin con el permiso admin_users
+      const admins = await this.usersRepository
+        .createQueryBuilder('admin')
+        .where('admin.role = :role', { role: UserRole.ADMIN })
+        .andWhere(':permission = ANY(admin.permissions)', {
+          permission: PermissionEnum.ADMIN_USERS,
+        })
+        .getMany()
+
+      // Crear notificación para cada admin y enviar email
+      const notificationPromises = admins.map(async (admin) => {
+        // Crear notificación en DB
+        await this.notificationsService.create({
+          userId: admin.id,
+          title: 'Nuevo usuario registrado',
+          message: `Se ha registrado un nuevo usuario: ${user.email} (Cédula: ${user.cedula})`,
+          type: NotificationTypeEnum.SUCCESS,
+          link: `/users/${user.id}`,
+          referenceType: 'user',
+          referenceId: user.id,
+        })
+
+        // Enviar email de notificación
+        try {
+          await this.emailsService.sendAdminNotificationEmail(
+            admin.email,
+            'Nuevo usuario registrado en la plataforma',
+            `Se ha registrado un nuevo usuario en CinemaEC:\n\nEmail: ${user.email}\nCédula: ${user.cedula}\n\nPor favor revísalo en la plataforma.`,
+          )
+        } catch (emailError) {
+          console.error(
+            `Error enviando email a admin ${admin.email}:`,
+            emailError,
+          )
+        }
+      })
+
+      await Promise.all(notificationPromises)
+    } catch (error) {
+      console.error('Error enviando notificaciones a admins:', error)
     }
   }
 

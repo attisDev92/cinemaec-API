@@ -1,14 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { Notification } from './entities/notification.entity'
+import {
+  Notification,
+  NotificationTypeEnum,
+} from './entities/notification.entity'
 import { CreateNotificationDto } from './dto/create-notification.dto'
+import { User } from '../users/entities/user.entity'
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private notificationsRepository: Repository<Notification>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   /**
@@ -114,5 +120,62 @@ export class NotificationsService {
   async removeAllByUser(userId: number): Promise<{ affected: number }> {
     const result = await this.notificationsRepository.delete({ userId })
     return { affected: result.affected || 0 }
+  }
+
+  /**
+   * Crear notificación para todos los admins con un permiso específico
+   * @param permission - Permiso a buscar (ej: 'admin_spaces', 'admin_users')
+   * @param title - Título de la notificación
+   * @param message - Mensaje de la notificación
+   * @param type - Tipo de notificación (info, success, warning, error)
+   * @param link - Link opcional para la notificación
+   * @param referenceType - Tipo de referencia (ej: 'space', 'user')
+   * @param referenceId - ID de la referencia
+   */
+  async notifyAdminsByPermission(
+    permission: string,
+    title: string,
+    message: string,
+    type: NotificationTypeEnum = NotificationTypeEnum.INFO,
+    link?: string,
+    referenceType?: string,
+    referenceId?: number,
+  ): Promise<Notification[]> {
+    // Buscar todos los usuarios con el permiso específico
+    const admins = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.permissions LIKE :permission', {
+        permission: `%${permission}%`,
+      })
+      .getMany()
+
+    // Crear notificación para cada admin
+    const notifications: Notification[] = []
+
+    for (const admin of admins) {
+      const notificationDto: CreateNotificationDto = {
+        userId: admin.id,
+        title,
+        message,
+        type,
+      }
+
+      if (link) {
+        notificationDto.link = link
+      }
+
+      if (referenceType) {
+        notificationDto.referenceType = referenceType
+      }
+
+      if (referenceId) {
+        notificationDto.referenceId = referenceId
+      }
+
+      const notification = await this.create(notificationDto)
+      notifications.push(notification)
+    }
+
+    return notifications
   }
 }
