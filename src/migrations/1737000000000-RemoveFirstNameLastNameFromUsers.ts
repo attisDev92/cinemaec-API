@@ -6,7 +6,7 @@ export class RemoveFirstNameLastNameFromUsers1737000000000
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Verificar si las columnas existen antes de intentar eliminarlas
     const table = await queryRunner.getTable('users')
-    
+
     if (table) {
       const firstNameColumn = table.findColumnByName('firstName')
       const lastNameColumn = table.findColumnByName('lastName')
@@ -26,7 +26,7 @@ export class RemoveFirstNameLastNameFromUsers1737000000000
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Restaurar las columnas en caso de rollback
     const table = await queryRunner.getTable('users')
-    
+
     if (table) {
       const firstNameColumn = table.findColumnByName('firstName')
       const lastNameColumn = table.findColumnByName('lastName')
