@@ -7,6 +7,7 @@ import {
   IsArray,
   IsNumber,
   MaxLength,
+  MinLength,
   ArrayMinSize,
   ArrayMaxSize,
   Min,
@@ -297,11 +298,13 @@ export class CreateSpaceDto {
   @ApiPropertyOptional({
     description: 'Número de RUC (Registro Único de Contribuyentes)',
     example: '0190000000001',
-    maxLength: 20,
+    minLength: 13,
+    maxLength: 13,
   })
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(13)
+  @MinLength(13)
   ruc?: string
 
   @ApiProperty({

@@ -137,7 +137,7 @@ export class Space {
   @Column({ type: 'int', nullable: true })
   rucDocument: number | null
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 13, nullable: true })
   ruc: string | null
 
   @Column({ type: 'int', nullable: false })
