@@ -15,21 +15,26 @@ async function bootstrap() {
     nodeEnv === 'production' ? 8080 : config.get<number>('PORT') || 3000
   const logger = new Logger('Bootstrap')
 
+  logger.log(`Starting application in ${nodeEnv} mode on port ${port}...`)
+
   // Ejecutar migraciones pendientes (siempre) para asegurar esquema actualizado
   try {
     const dataSource = app.get(DataSource)
     if (dataSource && !dataSource.isInitialized) {
+      logger.log('🔄 Initializing database connection...')
       await dataSource.initialize()
+      logger.log('✅ Database connection established')
     }
 
-    if (dataSource) {
-      logger.log('🔄 Ejecutando migraciones pendientes...')
+    if (dataSource && dataSource.isInitialized) {
+      logger.log('🔄 Running pending migrations...')
       await dataSource.runMigrations()
-      logger.log('✅ Migraciones ejecutadas exitosamente')
+      logger.log('✅ Migrations executed successfully')
     }
   } catch (error) {
-    logger.error('⚠️ Error ejecutando migraciones:', error)
-    // No lanzamos error para no bloquear startup en caso de problemas
+    logger.error('⚠️ Error during migrations:', error)
+    // Continuar sin lanzar error para permitir startup
+    // pero loguear el error para debugging
   }
 
   // Logging interceptor global
@@ -80,11 +85,12 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0')
   logger.log(
-    `🚀 Application is running in ${config.get<string>('NODE_ENV')} mode on: http://0.0.0.0:${port}`,
+    `✅ Application is running in ${nodeEnv} mode on: http://0.0.0.0:${port}`,
   )
   logger.log(
     `📚 Swagger documentation available at: http://0.0.0.0:${port}/api`,
   )
+  logger.log('🎯 Application is ready to accept requests')
 }
 
 void bootstrap()

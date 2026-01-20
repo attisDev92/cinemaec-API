@@ -29,12 +29,15 @@ RUN npm ci --only=production
 # Copiar build desde builder
 COPY --from=builder /app/dist ./dist
 
+# Establecer variable de ambiente para producción
+ENV NODE_ENV=production
+
 # Exponer puerto 8080 (requerido por Cloud Run)
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+# Health check con timeout extendido para permitir migraciones
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
 
 # Comando de inicio
 CMD ["node", "dist/main"]
