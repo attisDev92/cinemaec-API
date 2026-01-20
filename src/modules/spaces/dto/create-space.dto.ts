@@ -294,6 +294,16 @@ export class CreateSpaceDto {
   @IsInt()
   rucDocument?: number
 
+  @ApiPropertyOptional({
+    description: 'Número de RUC (Registro Único de Contribuyentes)',
+    example: '0190000000001',
+    maxLength: 20,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  ruc?: string
+
   @ApiProperty({
     description:
       'ID del documento que acredita al administrador en formato PDF (asset)',
