@@ -380,6 +380,9 @@ export class ProfessionalsService {
       rrss: professional.isPublic ? professional.rrss : null,
       bio: professional.isPublic ? professional.bio : null,
       bioEn: professional.isPublic ? professional.bioEn : null,
+      extendedBiofilmography: professional.isPublic
+        ? professional.extendedBiofilmography
+        : null,
       profilePhotoAssetId: professional.profilePhotoAssetId,
       profilePhotoAsset: professional.profilePhotoAsset,
       reelLink: professional.isPublic ? professional.reelLink : null,
