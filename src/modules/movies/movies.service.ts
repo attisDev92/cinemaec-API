@@ -7,8 +7,7 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, QueryFailedError, Repository } from 'typeorm'
-import { Movie } from './entities/movie.entity'
-import { MovieStatusEnum } from './entities/movie.entity'
+import { Movie, MovieStatusEnum, MovieType } from './entities/movie.entity'
 import { MovieProfessional } from './entities/movie-professional.entity'
 import { UpdateMovieCastCrewDto } from './dto/update-cast-crew.dto'
 import { CinematicRole } from '../catalog/entities/cinematic-role.entity'
@@ -554,10 +553,33 @@ export class MoviesService {
         })
       : []
 
+    if (
+      createMovieDto.type === MovieType.SERIES &&
+      (!createMovieDto.episodeCount ||
+        !createMovieDto.seasonCount ||
+        !createMovieDto.episodeDurationMinutes)
+    ) {
+      throw new BadRequestException(
+        'Para tipo Series debes ingresar número de episodios, cantidad de temporadas y duración por episodio',
+      )
+    }
+
     const movie = this.movieRepository.create({
       title: createMovieDto.title,
       titleEn: createMovieDto.titleEn ?? null,
       durationMinutes: createMovieDto.durationMinutes,
+      episodeCount:
+        createMovieDto.type === MovieType.SERIES
+          ? (createMovieDto.episodeCount ?? null)
+          : null,
+      seasonCount:
+        createMovieDto.type === MovieType.SERIES
+          ? (createMovieDto.seasonCount ?? null)
+          : null,
+      episodeDurationMinutes:
+        createMovieDto.type === MovieType.SERIES
+          ? (createMovieDto.episodeDurationMinutes ?? null)
+          : null,
       type: createMovieDto.type,
       genre: createMovieDto.genre,
       releaseYear: createMovieDto.releaseYear,
@@ -862,11 +884,34 @@ export class MoviesService {
         })
       : []
 
+    if (
+      updateMovieDto.type === MovieType.SERIES &&
+      (!updateMovieDto.episodeCount ||
+        !updateMovieDto.seasonCount ||
+        !updateMovieDto.episodeDurationMinutes)
+    ) {
+      throw new BadRequestException(
+        'Para tipo Series debes ingresar número de episodios, cantidad de temporadas y duración por episodio',
+      )
+    }
+
     const movie = this.movieRepository.create({
       ...existingMovie,
       title: updateMovieDto.title,
       titleEn: updateMovieDto.titleEn ?? null,
       durationMinutes: updateMovieDto.durationMinutes,
+      episodeCount:
+        updateMovieDto.type === MovieType.SERIES
+          ? (updateMovieDto.episodeCount ?? null)
+          : null,
+      seasonCount:
+        updateMovieDto.type === MovieType.SERIES
+          ? (updateMovieDto.seasonCount ?? null)
+          : null,
+      episodeDurationMinutes:
+        updateMovieDto.type === MovieType.SERIES
+          ? (updateMovieDto.episodeDurationMinutes ?? null)
+          : null,
       type: updateMovieDto.type,
       genre: updateMovieDto.genre,
       releaseYear: updateMovieDto.releaseYear,

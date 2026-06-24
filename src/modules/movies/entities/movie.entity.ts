@@ -88,6 +88,15 @@ export class Movie {
   @Column({ type: 'int' })
   durationMinutes: number
 
+  @Column({ type: 'int', nullable: true })
+  episodeCount: number | null
+
+  @Column({ type: 'int', nullable: true })
+  seasonCount: number | null
+
+  @Column({ type: 'int', nullable: true })
+  episodeDurationMinutes: number | null
+
   @Column({ type: 'enum', enum: MovieType })
   type: MovieType
 

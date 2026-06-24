@@ -32,6 +32,21 @@ export class CreateMovieDto {
   @Min(1)
   durationMinutes: number
 
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  episodeCount?: number
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  seasonCount?: number
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  episodeDurationMinutes?: number
+
   @IsEnum(MovieType)
   type: MovieType
 
